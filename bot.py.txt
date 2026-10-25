@@ -1,0 +1,79 @@
+
+import os
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
+
+TELE_TOKEN = os.getenv("TELE_TOKEN")
+ADMIN_ID = os.getenv("ADMIN_ID")
+PING_KEY = os.getenv("PING_KEY")
+
+# Data produk CP CELL
+PRODUCTS = {
+    "PULSA": ["5K", "10K", "20K", "50K", "100K"],
+    "DATA": ["1GB", "3GB", "10GB", "UNLIMITED"],
+    "TOKEN LISTRIK": ["20K", "50K", "100K", "200K"]
+}
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    keyboard = [
+        [InlineKeyboardButton("🛒 PULSA", callback_data="PULSA"),
+         InlineKeyboardButton("📶 DATA", callback_data="DATA")],
+        [InlineKeyboardButton("💡 TOKEN LISTRIK", callback_data="TOKEN LISTRIK"),
+         InlineKeyboardButton("💳 QRIS", callback_data="QRIS")],
+        [InlineKeyboardButton("📞 CS ADMIN", url="https://t.me/admin")]
+    ]
+    text = f"""🔥 *CP CELL FULL SINTIA* 🔥
+    
+Halo {user.first_name}!
+
+Selamat Datang di Bot Otomatis CP CELL!
+
+ID Kamu: `{user.id}`
+
+Silahkan Pilih Menu Dibawah:
+✅ Proses Otomatis 24 Jam
+✅ Harga Murah
+✅ Transaksi Cepat
+
+Ketik /ping untuk cek bot aktif!
+"""
+    await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+
+async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f"PONG! ✅ Bot CP CELL Aktif!\nPING KEY: {PING_KEY}\nADMIN ID: {ADMIN_ID}")
+
+async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if query.data == "QRIS":
+        # Kirim QRIS
+        if os.path.exists("qris.jpg"):
+            await query.message.reply_photo(photo=open("qris.jpg","rb"), caption="💳 *QRIS CP CELL - SCAN UNTUK BAYAR*\n\nSetelah bayar, kirim bukti transfer ke admin!\nOtomatis diproses!", parse_mode="Markdown")
+        else:
+            await query.message.reply_text("QRIS belum di upload!")
+    else:
+        product = query.data
+        items = PRODUCTS.get(product, [])
+        txt = f"📦 *{product} CP CELL*\n\nPilih nominal:\n"
+        for i in items:
+            txt += f"• {product} {i} - Rp. ...\n"
+        txt += "\nKetik: *{product} NOMINAL NOMOR*\nContoh: PULSA 10K 081234567890"
+        await query.message.reply_text(txt, parse_mode="Markdown")
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.upper()
+    await update.message.reply_text(f"✅ Format Diterima: {text}\n\nSilahkan Transfer ke QRIS dan kirim bukti TF! Pesanan akan diproses admin.")
+
+def main():
+    print("Starting CP CELL Bot...")
+    app = ApplicationBuilder().token(TELE_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("ping", ping))
+    app.add_handler(CallbackQueryHandler(handle_button))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    print("Bot Running...")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
